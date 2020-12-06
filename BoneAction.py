@@ -3,11 +3,11 @@ bl_info = {
     "author": "Dukhart",
     "version": (1, 0),
     "blender": (2, 80, 0),
-    "location": "PROPERTIES",
-    "description": "Renames bones in selected armature's nla track list. Uncheck nla True to change all Actions.",
-    "warning": "Alpha Release!!! program independently developed by technical artist Dukhart",
-    "doc_url": "www.Dukhart.ca/Blender_BoneAction_Plugin","www.GitHub.com/Dukhart/Blender_BoneAction_Plugin"
-    "category": "PROPERTIES",
+    "location": "PROPERTIES > bone",
+    "description": "Renames bones in selected armature's nla track list.",
+    "warning": "Alpha Release!",
+    "doc_url": "www.Dukhart.ca/Blender_BoneAction_Plugin",
+    "category": "Properties",
 }
 
 import bpy
