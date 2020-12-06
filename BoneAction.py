@@ -4,42 +4,14 @@ bl_info = {
     "version": (1, 0),
     "blender": (2, 80, 0),
     "location": "PROPERTIES",
-    "description": "Renames ALL bones in actions that match the active bone name. Check nla True to change only Actions in armaturs nla data.",
+    "description": "Renames bones in selected armature's nla track list. Uncheck nla True to change all Actions.",
     "warning": "Alpha Release!!! program independently developed by technical artist Dukhart",
     "doc_url": "www.Dukhart.ca/Blender_BoneAction_Plugin","www.GitHub.com/Dukhart/Blender_BoneAction_Plugin"
     "category": "PROPERTIES",
 }
 
 import bpy
-
-#checks if input obj is an armature
-def isArmature(obj):
-        print (obj.name + " " + obj.type)
-        if obj.type == 'ARMATURE':
-            return True
-        else:
-            return False
-
-#removes empty nla tracks
-def cleanEmptyTracks(context):
-    print('cleaning nla tracks')
-    if context.object and context.object.animation_data:
-        for track in context.object.animation_data.nla_tracks:
-            if not track.strips:
-                print('removing ' + track.name + ' no strips')
-                context.object.animation_data.nla_tracks.remove(track)
-            else:
-                hasAction = False
-                for strip in track.strips:
-                    if not strip.action:
-                        print('removing ' + track.name + " - " + strip.name + ' no action')
-                        track.strips.remove(strip)
-                    else:
-                        hasAction = True
-                if not hasAction:
-                    print('removing ' + track.name + ' no action')
-                    context.object.animation_data.nla_tracks.remove(track)
-    
+                
 class BONEACTION_OT_RenameBone(bpy.types.Operator):
     """Renames the bone on all connected actions"""
     bl_label = "Bone Action"
@@ -49,6 +21,11 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
     oldName: bpy.props.StringProperty(name='Old Name')
     newName: bpy.props.StringProperty(name='New Name')
     
+    def invoke(self, context, event):
+        #if context.object.animation_data and context.object.animation_data.nla_tracks:
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+        
     def execute(self, context):
         print ('Execute Bone Action')
         obj = context.object
@@ -74,16 +51,25 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
                 else:
                     self.report({'ERROR'},'Input bone ' + self.oldName + ' not found')
                     return {'CANCELLED'}
-        self.renameBone_ActionUpdate(self, obj, bone, self.newName)
+        self.renameBone_ActionUpdate(obj, bone, self.newName)
         return {'FINISHED'}
     
-    def invoke(self, context, event):
-        #if context.object.animation_data and context.object.animation_data.nla_tracks:
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-    
-    def renameBone_ActionUpdate(context, self, obj, bone, newName):
-        if (isArmature(obj) == False):
+    @staticmethod
+    def renameActionDataPath(path, oldName, newName):
+        pathParse  = path.split('"')
+        
+        preffix = pathParse[0]
+        pathName = pathParse[1]
+        suffix = pathParse[2]
+        
+        if pathName == oldName:
+            newPath = preffix + '"' + newName + '"' + suffix
+            return newPath
+        else:
+            return path
+                          
+    def renameBone_ActionUpdate(self, obj, bone, newName):
+        if not obj.type == 'ARMATURE':
             self.report({'ERROR'},'No armature selected')
             return {'CANCELLED'}
         oldName = bone.name
@@ -104,14 +90,15 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
         
         #update actions
         if self.nla:
-            self.updateNLA(obj, self, oldName, bone.name)
+            self.updateNLA(obj, oldName, bone.name)
         else:
-            self.updateActions(obj, self, oldName, bone.name)
+            self.updateActions(obj, oldName, bone.name)
         
         
     #updates all actions with a matching bone name
-    def updateActions (context, obj, self, oldName, newName):
-        if (isArmature(obj) == False):
+    @classmethod
+    def updateActions (self, obj, oldName, newName):
+        if not obj.type == 'ARMATURE':
             self.report({'ERROR'},'No armature selected')
             return {'CANCELLED'}
     
@@ -123,13 +110,17 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
                     for fcurve in action.fcurves:
                         if fcurve.group.name == oldName:
                             fcurve.group.name = newName
+                        fcurve.data_path = self.renameActionDataPath(fcurve.data_path, oldName, newName)
     
-    #updates actions in the selected armatures nla track list with a matching bone          
-    def updateNLA (context, obj, caller, oldName, newName):
-        if (isArmature(obj) == False):
+    #updates actions in the selected armatures nla track list with a matching bone
+    @classmethod
+    def updateNLA (self, obj, oldName, newName):
+        if not obj.type == 'ARMATURE':
             self.report({'ERROR'},'No armature selected')
             return {'CANCELLED'}
-                  
+        if not obj.animation_data:
+            self.report({'WARNING'}, obj.name + ' has no animation data')
+            return {'CANCELLED'}
         for track in obj.animation_data.nla_tracks:
             for strip in track.strips:
                 action = strip.action
@@ -137,6 +128,7 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
                 for fcurve in action.fcurves:
                     if fcurve.group.name == oldName:
                         fcurve.group.name = newName
+                    fcurve.data_path = self.renameActionDataPath(fcurve.data_path, oldName, newName)
 
 #the panel displayed in the bone properties
 class BONEACTION_PT_Panel(bpy.types.Panel):
@@ -153,8 +145,9 @@ class BONEACTION_PT_Panel(bpy.types.Panel):
         #build the list
         self.buildList()
         
-    #buid
-    def buildList(context):
+    #build
+    @classmethod
+    def buildList(cls):
         #builds the list based on current selections animation_data
         obj = bpy.context.object
         if obj and obj.animation_data and obj.animation_data.nla_tracks:
@@ -172,13 +165,14 @@ class BONEACTION_PT_Panel(bpy.types.Panel):
         if bpy.context.scene.nla_actions_index < 0:
             bpy.context.scene.nla_actions_index = 0
         
-    def clearList(context):
+    @classmethod
+    def clearList(cls):
         #clear list starting at the end until 0
         list_index = len(bpy.context.scene.nla_actions_list)
         while list_index:
             list_index -= 1
             bpy.context.scene.nla_actions_list.remove(list_index)
-    
+            
     def draw(self, context):
         layout = self.layout
         props = self.layout.operator('boneaction.renamebone', text="Bone Action")
@@ -218,7 +212,7 @@ class BONEACTION_PT_Panel(bpy.types.Panel):
 
 class BONEACTION_ListItem(bpy.types.PropertyGroup):
     """Group of properties representing an item in the list.""" 
-    name: bpy.props.StringProperty( name="Name", description="A name for this item", default="none")
+    name: bpy.props.StringProperty( name="Name", description="The Name", default="none")
     track: bpy.props.StringProperty( name="Track", description="The Track", default="none")
     strip: bpy.props.StringProperty( name="Strip", description="The Strip", default="none")
 
@@ -252,7 +246,7 @@ class BONEACTION_OT_New_NLAAction(bpy.types.Operator):
     
     def execute(self, context):
         obj = context.object
-        if not isArmature(obj):
+        if not obj.type == 'ARMATURE':
             self.report({'ERROR'},'No armature selected')
             return {'CANCELLED'}
         
@@ -260,7 +254,7 @@ class BONEACTION_OT_New_NLAAction(bpy.types.Operator):
         
         if not obj.animation_data:
             obj.animation_data_create()
-        track = context.object.animation_data.nla_tracks.new()
+        track = obj.animation_data.nla_tracks.new()
         strip = track.strips.new(action.name + ' strip',0,action)
         return {'FINISHED'}
     
@@ -284,7 +278,7 @@ class BONEACTION_OT_Add_NLAAction(bpy.types.Operator):
     
     def execute(self, context):
         obj = context.object
-        if not isArmature(obj):
+        if not obj.type == 'ARMATURE':
             self.report({'ERROR'},'No armature selected')
             return {'CANCELLED'}
         action = bpy.data.actions[self.actionID]
@@ -293,11 +287,6 @@ class BONEACTION_OT_Add_NLAAction(bpy.types.Operator):
         track = context.object.animation_data.nla_tracks.new()
         strip = track.strips.new(action.name + ' strip',0,action)
         return {'FINISHED'} 
-    '''    
-    def invoke(self, context, event):
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-    '''
     
 #removes nla action from list optional delete action defaults to false            
 class BONEACTION_OT_Remove_NLAAction(bpy.types.Operator):
@@ -340,8 +329,28 @@ class BONEACTION_OT_Remove_NLAAction(bpy.types.Operator):
                 warning('Invalid index')
                 return {'CANCELLED'}
             
-        cleanEmptyTracks(context)
+        self.cleanEmptyTracks(context)
         return {'FINISHED'}
+    
+    #removes empty nla tracks
+    def cleanEmptyTracks(self, context):
+        print('cleaning nla tracks')
+        if context.object and context.object.animation_data:
+            for track in context.object.animation_data.nla_tracks:
+                if not track.strips:
+                    print('removing ' + track.name + ' no strips')
+                    context.object.animation_data.nla_tracks.remove(track)
+                else:
+                    hasAction = False
+                    for strip in track.strips:
+                        if not strip.action:
+                            print('removing ' + track.name + " - " + strip.name + ' no action')
+                            track.strips.remove(strip)
+                        else:
+                            hasAction = True
+                    if not hasAction:
+                        print('removing ' + track.name + ' no action')
+                        context.object.animation_data.nla_tracks.remove(track)
     
 class BONEACTION_MT_Existing_Menu(bpy.types.Menu):
     '''Add Existing Action'''

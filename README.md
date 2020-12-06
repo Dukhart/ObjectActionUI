@@ -1,2 +1,2 @@
 # BoneAction
- Blender plugin for renaming bones with multiple actions attached in nla tracks
+ Blender plugin for renaming bones with multiple actions attached as nla tracks
