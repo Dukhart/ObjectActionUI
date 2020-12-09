@@ -1,3 +1,5 @@
+#LICENSE:Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License
+#<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons Licence" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Text" property="dct:title" rel="dct:type">Bone Action</span> by <a xmlns:cc="http://creativecommons.org/ns#" href="www.Dukhart.com" property="cc:attributionName" rel="cc:attributionURL">Dukhart</a> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
 bl_info = {
     "name": "Bone Action",
     "author": "Dukhart",
@@ -6,7 +8,7 @@ bl_info = {
     "location": "PROPERTIES > bone",
     "description": "Renames bones in selected armature's nla track list.",
     "warning": "Alpha Release!",
-    "doc_url": "www.Dukhart.ca/Blender_BoneAction_Plugin",
+    "doc_url": "https://github.com/Dukhart/BoneAction",
     "category": "Properties",
 }
 
@@ -14,7 +16,7 @@ import bpy
                 
 class BONEACTION_OT_RenameBone(bpy.types.Operator):
     """Renames the bone on all connected actions"""
-    bl_label = "Bone Action"
+    bl_label = "Rename Bone"
     bl_idname = "boneaction.renamebone"
     
     nla: bpy.props.BoolProperty(name="Use nla tracks", default=True, description='limits bone renaming to the nla track list')
@@ -175,13 +177,13 @@ class BONEACTION_PT_Panel(bpy.types.Panel):
             
     def draw(self, context):
         layout = self.layout
-        props = self.layout.operator('boneaction.renamebone', text="Bone Action")
+        props = self.layout.operator('boneaction.renamebone', text="Rename Bone")
         
         scene = context.scene
         
         obj = context.object
         row = layout.row()
-        row.label(text="Active armature is: " + obj.name)
+        #row.label(text="Active armature is: " + obj.name)
         
         #get active bone
         if obj:
@@ -193,6 +195,7 @@ class BONEACTION_PT_Panel(bpy.types.Panel):
                 props.oldName = bone.name
                 
                 row = layout.row()
+                row.label(text=obj.name, icon='ARMATURE_DATA')
                 row.label(text=bone.name, icon='BONE_DATA')
                            
         # template_list
