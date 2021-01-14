@@ -5,11 +5,10 @@ Version 3, 29 June 2007
 bl_info = {
     "name": "Bone Action",
     "author": "Dukhart",
-    "version": (1, 0),
-    "blender": (2, 80, 0),
+    "version": (1, 1),
+    "blender": (2, 9, 0),
     "location": "PROPERTIES > bone",
     "description": "Renames bones in selected armature's nla track list.",
-    "warning": "Alpha Release!",
     "doc_url": "https://github.com/Dukhart/BoneAction",
     "category": "Properties",
 }
@@ -22,6 +21,7 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
     bl_idname = "boneaction.renamebone"
     
     nla: bpy.props.BoolProperty(name="Use nla tracks", default=True, description='limits bone renaming to the nla track list')
+    updateActive: bpy.props.BoolProperty(name="Update Active", default=True, description='will update active action even if it is not on the nla track list')
     oldName: bpy.props.StringProperty(name='Old Name')
     newName: bpy.props.StringProperty(name='New Name')
     
@@ -81,8 +81,11 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
         activeAction = None
         if obj.animation_data:
             activeAction = obj.animation_data.action
-        #turn off acive action or it will update
-        obj.animation_data.action = None
+        
+        if self.updateActive == False:
+            #turn off acive action or it will update
+            obj.animation_data.action = None
+        
         data = obj.data
         #change bone name
         if obj.mode == 'EDIT':
