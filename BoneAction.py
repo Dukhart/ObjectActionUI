@@ -14,7 +14,7 @@ bl_info = {
 }
 
 import bpy
-                
+
 class BONEACTION_OT_RenameBone(bpy.types.Operator):
     """Renames the bone on all connected actions"""
     bl_label = "Rename Bone"
@@ -33,7 +33,15 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
     def execute(self, context):
         print ('Execute Bone Action')
         obj = context.object
-        
+        if not obj.type == 'ARMATURE':
+            while obj.parent:
+                obj = obj.parent
+                if obj.type == 'ARMATURE':
+                    break
+            if not obj.type == 'ARMATURE':
+                self.report({'ERROR'},'No armature selected')
+                return {'CANCELLED'}
+
         if obj.mode == 'EDIT':
             bone = obj.data.edit_bones.active
         else:
@@ -125,6 +133,7 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
         if not obj.type == 'ARMATURE':
             self.report({'ERROR'},'No armature selected')
             return {'CANCELLED'}
+
         if not obj.animation_data:
             self.report({'WARNING'}, obj.name + ' has no animation data')
             return {'CANCELLED'}
@@ -157,6 +166,15 @@ class BONEACTION_PT_Panel(bpy.types.Panel):
     def buildList(cls):
         #builds the list based on current selections animation_data
         obj = bpy.context.object
+
+        if not obj.type == 'ARMATURE':
+            while obj.parent:
+                obj = obj.parent
+                if obj.type == 'ARMATURE':
+                    break
+            if not obj.type == 'ARMATURE':
+                return
+
         if obj and obj.animation_data and obj.animation_data.nla_tracks:
             for track in obj.animation_data.nla_tracks:
                 for strip in track.strips:
@@ -190,6 +208,14 @@ class BONEACTION_PT_Panel(bpy.types.Panel):
         row = layout.row()
         #row.label(text="Active armature is: " + obj.name)
         
+        if not obj.type == 'ARMATURE':
+            while obj.parent:
+                obj = obj.parent
+                if obj.type == 'ARMATURE':
+                    break
+            if not obj.type == 'ARMATURE':
+                return
+
         #get active bone
         if obj:
             if obj.mode == 'EDIT':
@@ -255,8 +281,13 @@ class BONEACTION_OT_New_NLAAction(bpy.types.Operator):
     def execute(self, context):
         obj = context.object
         if not obj.type == 'ARMATURE':
-            self.report({'ERROR'},'No armature selected')
-            return {'CANCELLED'}
+            while obj.parent:
+                obj = obj.parent
+                if obj.type == 'ARMATURE':
+                    break
+            if not obj.type == 'ARMATURE':
+                self.report({'ERROR'},'No armature selected')
+                return {'CANCELLED'}
         
         action = bpy.data.actions.new(self.actionName)
         
@@ -287,12 +318,18 @@ class BONEACTION_OT_Add_NLAAction(bpy.types.Operator):
     def execute(self, context):
         obj = context.object
         if not obj.type == 'ARMATURE':
-            self.report({'ERROR'},'No armature selected')
-            return {'CANCELLED'}
+            while obj.parent:
+                obj = obj.parent
+                if obj.type == 'ARMATURE':
+                    break
+            if not obj.type == 'ARMATURE':
+                self.report({'ERROR'},'No armature selected')
+                return {'CANCELLED'}
+
         action = bpy.data.actions[self.actionID]
         if not obj.animation_data:
             obj.animation_data_create()
-        track = context.object.animation_data.nla_tracks.new()
+        track = obj.animation_data.nla_tracks.new()
         strip = track.strips.new(action.name + ' strip',0,action)
         return {'FINISHED'} 
     
@@ -313,8 +350,17 @@ class BONEACTION_OT_Remove_NLAAction(bpy.types.Operator):
             self.deleteAction = True
         else:
             self.deleteAction = False
-            
+        
         if context.object:
+            obj  = context.object
+            if not obj.type == 'ARMATURE':
+                while obj.parent:
+                    obj = obj.parent
+                    if obj.type == 'ARMATURE':
+                        break
+                if not obj.type == 'ARMATURE':
+                    self.report({'ERROR'},'No armature selected')
+                    return {'CANCELLED'}
             #get index to remove
             i = context.scene.nla_actions_index
             
@@ -327,11 +373,11 @@ class BONEACTION_OT_Remove_NLAAction(bpy.types.Operator):
                     if j >= 0 and j < len(bpy.data.actions):
                         bpy.data.actions.remove(bpy.data.actions[j])
                 #remove from this armature's nla_tracks
-                elif context.object.animation_data and context.object.animation_data.nla_tracks:
+                elif obj.animation_data and obj.animation_data.nla_tracks:
                     s = context.scene.nla_actions_list[i].track
-                    j = context.object.animation_data.nla_tracks.find(s) 
+                    j = obj.animation_data.nla_tracks.find(s) 
                     if j >= 0:
-                        context.object.animation_data.nla_tracks.remove(context.object.animation_data.nla_tracks[j])
+                        obj.animation_data.nla_tracks.remove(obj.animation_data.nla_tracks[j])
                     
             else:
                 warning('Invalid index')
@@ -343,22 +389,33 @@ class BONEACTION_OT_Remove_NLAAction(bpy.types.Operator):
     #removes empty nla tracks
     def cleanEmptyTracks(self, context):
         print('cleaning nla tracks')
-        if context.object and context.object.animation_data:
-            for track in context.object.animation_data.nla_tracks:
-                if not track.strips:
-                    print('removing ' + track.name + ' no strips')
-                    context.object.animation_data.nla_tracks.remove(track)
-                else:
-                    hasAction = False
-                    for strip in track.strips:
-                        if not strip.action:
-                            print('removing ' + track.name + " - " + strip.name + ' no action')
-                            track.strips.remove(strip)
-                        else:
-                            hasAction = True
-                    if not hasAction:
-                        print('removing ' + track.name + ' no action')
-                        context.object.animation_data.nla_tracks.remove(track)
+        if context.object:
+            obj  = context.object
+            if not obj.type == 'ARMATURE':
+                while obj.parent:
+                    obj = obj.parent
+                    if obj.type == 'ARMATURE':
+                        break
+                if not obj.type == 'ARMATURE':
+                    self.report({'ERROR'},'No armature selected')
+                    return {'CANCELLED'}
+
+            if obj.animation_data:
+                for track in obj.animation_data.nla_tracks:
+                    if not track.strips:
+                        print('removing ' + track.name + ' no strips')
+                        obj.animation_data.nla_tracks.remove(track)
+                    else:
+                        hasAction = False
+                        for strip in track.strips:
+                            if not strip.action:
+                                print('removing ' + track.name + " - " + strip.name + ' no action')
+                                track.strips.remove(strip)
+                            else:
+                                hasAction = True
+                        if not hasAction:
+                            print('removing ' + track.name + ' no action')
+                            obj.animation_data.nla_tracks.remove(track)
     
 class BONEACTION_MT_Existing_Menu(bpy.types.Menu):
     '''Add Existing Action'''
