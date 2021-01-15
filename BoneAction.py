@@ -5,10 +5,10 @@ Version 3, 29 June 2007
 bl_info = {
     "name": "Bone Action",
     "author": "Dukhart",
-    "version": (1, 1),
-    "blender": (2, 9, 0),
+    "version": (1, 2),
+    "blender": (2, 80, 0),
     "location": "PROPERTIES > bone",
-    "description": "Renames bones in selected armature's nla track list.",
+    "description": "Displays the actions in an armatures nla tracklist",
     "doc_url": "https://github.com/Dukhart/BoneAction",
     "category": "Properties",
 }
@@ -140,11 +140,11 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
 #the panel displayed in the bone properties
 class BONEACTION_PT_Panel(bpy.types.Panel):
     """Renames the bone on all connected actions"""
-    bl_label = "Bone Action"
+    bl_label = "Actions"
     bl_idname = "BONEACTION_PT_Panel"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
-    bl_context = "bone"
+    bl_context = "data"
     
     def __init__(self):
         #clear the list
