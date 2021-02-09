@@ -15,6 +15,17 @@ bl_info = {
 
 import bpy
 
+def isArmatureOrChildOf(obj):
+    if obj.type == 'ARMATURE':
+        return True
+    else:
+        while obj.parent:
+            obj = obj.parent
+            if obj.type == 'ARMATURE':
+                return True
+    return False
+            
+
 class BONEACTION_OT_RenameBone(bpy.types.Operator):
     """Renames the bone on all connected actions"""
     bl_label = "Rename Bone"
@@ -33,14 +44,9 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
     def execute(self, context):
         print ('Execute Bone Action')
         obj = context.object
-        if not obj.type == 'ARMATURE':
-            while obj.parent:
-                obj = obj.parent
-                if obj.type == 'ARMATURE':
-                    break
-            if not obj.type == 'ARMATURE':
-                self.report({'ERROR'},'No armature selected')
-                return {'CANCELLED'}
+        if not isArmatureOrChildOf(obj):
+            self.report({'ERROR'},'No armature selected')
+            return {'CANCELLED'}
 
         if obj.mode == 'EDIT':
             bone = obj.data.edit_bones.active
@@ -112,9 +118,9 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
         
     #updates all actions with a matching bone name
     @classmethod
-    def updateActions (self, obj, oldName, newName):
+    def updateActions (cls, obj, oldName, newName):
         if not obj.type == 'ARMATURE':
-            self.report({'ERROR'},'No armature selected')
+            cls.report({'ERROR'},'No armature selected')
             return {'CANCELLED'}
     
         actions = bpy.data.actions
@@ -125,17 +131,17 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
                     for fcurve in action.fcurves:
                         if fcurve.group.name == oldName:
                             fcurve.group.name = newName
-                        fcurve.data_path = self.renameActionDataPath(fcurve.data_path, oldName, newName)
+                        fcurve.data_path = cls.renameActionDataPath(fcurve.data_path, oldName, newName)
     
     #updates actions in the selected armatures nla track list with a matching bone
     @classmethod
-    def updateNLA (self, obj, oldName, newName):
+    def updateNLA (cls, obj, oldName, newName):
         if not obj.type == 'ARMATURE':
-            self.report({'ERROR'},'No armature selected')
+            cls.report({'ERROR'},'No armature selected')
             return {'CANCELLED'}
 
         if not obj.animation_data:
-            self.report({'WARNING'}, obj.name + ' has no animation data')
+            cls.report({'WARNING'}, obj.name + ' has no animation data')
             return {'CANCELLED'}
         for track in obj.animation_data.nla_tracks:
             for strip in track.strips:
@@ -144,7 +150,7 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
                 for fcurve in action.fcurves:
                     if fcurve.group.name == oldName:
                         fcurve.group.name = newName
-                    fcurve.data_path = self.renameActionDataPath(fcurve.data_path, oldName, newName)
+                    fcurve.data_path = cls.renameActionDataPath(fcurve.data_path, oldName, newName)
 
 #the panel displayed in the bone properties
 class BONEACTION_PT_Panel(bpy.types.Panel):
@@ -166,14 +172,6 @@ class BONEACTION_PT_Panel(bpy.types.Panel):
     def buildList(cls):
         #builds the list based on current selections animation_data
         obj = bpy.context.object
-
-        if not obj.type == 'ARMATURE':
-            while obj.parent:
-                obj = obj.parent
-                if obj.type == 'ARMATURE':
-                    break
-            if not obj.type == 'ARMATURE':
-                return
 
         if obj and obj.animation_data and obj.animation_data.nla_tracks:
             for track in obj.animation_data.nla_tracks:
@@ -200,31 +198,20 @@ class BONEACTION_PT_Panel(bpy.types.Panel):
             
     def draw(self, context):
         layout = self.layout
-        props = self.layout.operator('boneaction.renamebone', text="Rename Bone")
-        
         scene = context.scene
         
         obj = context.object
         row = layout.row()
         #row.label(text="Active armature is: " + obj.name)
-        
-        if not obj.type == 'ARMATURE':
-            while obj.parent:
-                obj = obj.parent
-                if obj.type == 'ARMATURE':
-                    break
-            if not obj.type == 'ARMATURE':
-                return
-
         #get active bone
-        if obj:
+        if obj and obj.type == 'ARMATURE':
             if obj.mode == 'EDIT':
                 bone = obj.data.edit_bones.active
             else:
                 bone = obj.data.bones.active
             if bone:
+                props = self.layout.operator('boneaction.renamebone', text="Rename Bone")
                 props.oldName = bone.name
-                
                 row = layout.row()
                 row.label(text=obj.name, icon='ARMATURE_DATA')
                 row.label(text=bone.name, icon='BONE_DATA')
@@ -280,14 +267,9 @@ class BONEACTION_OT_New_NLAAction(bpy.types.Operator):
     
     def execute(self, context):
         obj = context.object
-        if not obj.type == 'ARMATURE':
-            while obj.parent:
-                obj = obj.parent
-                if obj.type == 'ARMATURE':
-                    break
-            if not obj.type == 'ARMATURE':
-                self.report({'ERROR'},'No armature selected')
-                return {'CANCELLED'}
+        if not obj:
+            self.report({'ERROR'},'No object selected')
+            return {'CANCELLED'}
         
         action = bpy.data.actions.new(self.actionName)
         
@@ -317,14 +299,9 @@ class BONEACTION_OT_Add_NLAAction(bpy.types.Operator):
     
     def execute(self, context):
         obj = context.object
-        if not obj.type == 'ARMATURE':
-            while obj.parent:
-                obj = obj.parent
-                if obj.type == 'ARMATURE':
-                    break
-            if not obj.type == 'ARMATURE':
-                self.report({'ERROR'},'No armature selected')
-                return {'CANCELLED'}
+        if not obj:
+            self.report({'ERROR'},'No context.obj in ADD_NLAAction')
+            return {'CANCELLED'}
 
         action = bpy.data.actions[self.actionID]
         if not obj.animation_data:
@@ -353,15 +330,10 @@ class BONEACTION_OT_Remove_NLAAction(bpy.types.Operator):
         
         if context.object:
             obj  = context.object
-            if not obj.type == 'ARMATURE':
-                while obj.parent:
-                    obj = obj.parent
-                    if obj.type == 'ARMATURE':
-                        break
-                if not obj.type == 'ARMATURE':
-                    self.report({'ERROR'},'No armature selected')
-                    return {'CANCELLED'}
-            #get index to remove
+            if not obj:
+                self.report({'ERROR'},'No context.obj in Remove_NLAAction')
+                return {'CANCELLED'}
+
             i = context.scene.nla_actions_index
             
             #validate index
@@ -391,14 +363,9 @@ class BONEACTION_OT_Remove_NLAAction(bpy.types.Operator):
         print('cleaning nla tracks')
         if context.object:
             obj  = context.object
-            if not obj.type == 'ARMATURE':
-                while obj.parent:
-                    obj = obj.parent
-                    if obj.type == 'ARMATURE':
-                        break
-                if not obj.type == 'ARMATURE':
-                    self.report({'ERROR'},'No armature selected')
-                    return {'CANCELLED'}
+            if not obj:
+                self.report({'ERROR'},'No obj in CleanEmptyTracks')
+                return {'CANCELLED'}
 
             if obj.animation_data:
                 for track in obj.animation_data.nla_tracks:
