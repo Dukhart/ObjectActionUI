@@ -3,13 +3,13 @@ GNU GENERAL PUBLIC LICENSE
 Version 3, 29 June 2007
 '''
 bl_info = {
-    "name": "Bone Action",
+    "name": "Object Action UI",
     "author": "Dukhart",
     "version": (1, 2),
     "blender": (2, 80, 0),
-    "location": "PROPERTIES > bone",
+    "location": "PROPERTIES > data",
     "description": "Displays the actions in an armatures nla tracklist",
-    "doc_url": "https://github.com/Dukhart/BoneAction",
+    "doc_url": "https://github.com/Dukhart/ObjectActionUI",
     "category": "Properties",
 }
 
@@ -26,10 +26,10 @@ def isArmatureOrChildOf(obj):
     return False
             
 
-class BONEACTION_OT_RenameBone(bpy.types.Operator):
+class OBJECTACTIONUI_OT_RenameBone(bpy.types.Operator):
     """Renames the bone on all connected actions"""
     bl_label = "Rename Bone"
-    bl_idname = "boneaction.renamebone"
+    bl_idname = "objectactionui.renamebone"
     
     nla: bpy.props.BoolProperty(name="Use nla tracks", default=True, description='limits bone renaming to the nla track list')
     updateActive: bpy.props.BoolProperty(name="Update Active", default=True, description='will update active action even if it is not on the nla track list')
@@ -42,7 +42,7 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
         
     def execute(self, context):
-        print ('Execute Bone Action')
+        print ('Execute Object Action UI')
         obj = context.object
         if not isArmatureOrChildOf(obj):
             self.report({'ERROR'},'No armature selected')
@@ -153,10 +153,10 @@ class BONEACTION_OT_RenameBone(bpy.types.Operator):
                     fcurve.data_path = cls.renameActionDataPath(fcurve.data_path, oldName, newName)
 
 #the panel displayed in the bone properties
-class BONEACTION_PT_Panel(bpy.types.Panel):
+class OBJECTACTIONUI_PT_Panel(bpy.types.Panel):
     """Renames the bone on all connected actions"""
     bl_label = "Actions"
-    bl_idname = "BONEACTION_PT_Panel"
+    bl_idname = "OBJECTACTIONUI_PT_Panel"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "data"
@@ -210,34 +210,34 @@ class BONEACTION_PT_Panel(bpy.types.Panel):
             else:
                 bone = obj.data.bones.active
             if bone:
-                props = self.layout.operator('boneaction.renamebone', text="Rename Bone")
+                props = self.layout.operator('objectactionui.renamebone', text="Rename Bone")
                 props.oldName = bone.name
                 row = layout.row()
                 row.label(text=obj.name, icon='ARMATURE_DATA')
                 row.label(text=bone.name, icon='BONE_DATA')
                            
         # template_list
-        layout.template_list("BONEACTION_UL_List", "NLA_Action_List", scene, "nla_actions_list", scene, "nla_actions_index")
-        layout.template_list("BONEACTION_UL_List", "compact", scene, "nla_actions_list", scene, "nla_actions_index", type='COMPACT')
+        layout.template_list("OBJECTACTIONUI_UL_List", "NLA_Action_List", scene, "nla_actions_list", scene, "nla_actions_index")
+        layout.template_list("OBJECTACTIONUI_UL_List", "compact", scene, "nla_actions_list", scene, "nla_actions_index", type='COMPACT')
         
         #bottom button row
         row = layout.row()
         #select from existing actions
         #props = row.operator('nla_actions_list.add_action', text="Add Existing")
-        props = row.menu('BONEACTION_MT_Existing_Menu', text="Add Existing")
+        props = row.menu('OBJECTACTIONUI_MT_Existing_Menu', text="Add Existing")
         #create a new action and assign it
-        props = row.operator('boneaction.new_nlaaction', text="New")
+        props = row.operator('objectactionui.new_nlaaction', text="New")
         
         #remove action from nla list
-        props = row.operator('boneaction.remove_nlaaction', text="Remove")
+        props = row.operator('objectactionui.remove_nlaaction', text="Remove")
 
-class BONEACTION_ListItem(bpy.types.PropertyGroup):
+class OBJECTACTIONUI_ListItem(bpy.types.PropertyGroup):
     """Group of properties representing an item in the list.""" 
     name: bpy.props.StringProperty( name="Name", description="The Name", default="none")
     track: bpy.props.StringProperty( name="Track", description="The Track", default="none")
     strip: bpy.props.StringProperty( name="Strip", description="The Strip", default="none")
 
-class BONEACTION_UL_List(bpy.types.UIList):
+class OBJECTACTIONUI_UL_List(bpy.types.UIList):
     # The draw_item function is called for each item of the collection that is visible in the list.
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         ob = data
@@ -258,9 +258,9 @@ class BONEACTION_UL_List(bpy.types.UIList):
             layout.label(text="", icon_value=icon)
             
 #creates a new action and adds it to the objects nla tracks            
-class BONEACTION_OT_New_NLAAction(bpy.types.Operator):
+class OBJECTACTIONUI_OT_New_NLAAction(bpy.types.Operator):
     '''Add New Action'''
-    bl_idname = "boneaction.new_nlaaction"
+    bl_idname = "objectactionui.new_nlaaction"
     bl_label = "Create new Action"
     
     actionName: bpy.props.StringProperty(name='Action Name')
@@ -285,9 +285,9 @@ class BONEACTION_OT_New_NLAAction(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
     
 #find existing action and add it to the objects nla tracks
-class BONEACTION_OT_Add_NLAAction(bpy.types.Operator):
+class OBJECTACTIONUI_OT_Add_NLAAction(bpy.types.Operator):
     """Renames the bone on all connected actions"""
-    bl_idname = "boneaction.add_nlaaction"
+    bl_idname = "objectactionui.add_nlaaction"
     bl_label = "Add Existing Action"
     
     actionName: bpy.props.StringProperty(name='Action Name')
@@ -311,9 +311,9 @@ class BONEACTION_OT_Add_NLAAction(bpy.types.Operator):
         return {'FINISHED'} 
     
 #removes nla action from list optional delete action defaults to false            
-class BONEACTION_OT_Remove_NLAAction(bpy.types.Operator):
+class OBJECTACTIONUI_OT_Remove_NLAAction(bpy.types.Operator):
     '''Removes action from list. Hold CTRL to delete action'''
-    bl_idname = "boneaction.remove_nlaaction"
+    bl_idname = "objectactionui.remove_nlaaction"
     bl_label = "Remove Action"
     
     deleteAction: bpy.props.BoolProperty(name='Delete Action', default=False)
@@ -384,10 +384,10 @@ class BONEACTION_OT_Remove_NLAAction(bpy.types.Operator):
                             print('removing ' + track.name + ' no action')
                             obj.animation_data.nla_tracks.remove(track)
     
-class BONEACTION_MT_Existing_Menu(bpy.types.Menu):
+class OBJECTACTIONUI_MT_Existing_Menu(bpy.types.Menu):
     '''Add Existing Action'''
     bl_label = "Existing Actions"
-    bl_idname = "BONEACTION_MT_Existing_Menu"
+    bl_idname = "OBJECTACTIONUI_MT_Existing_Menu"
     
     @classmethod
     def poll(cls, context):
@@ -397,35 +397,35 @@ class BONEACTION_MT_Existing_Menu(bpy.types.Menu):
         layout = self.layout
         i = 0
         for action in bpy.data.actions:
-            props = layout.operator('boneaction.add_nlaaction', text=action.name)
+            props = layout.operator('objectactionui.add_nlaaction', text=action.name)
             props.actionID = i
             i += 1
   
 def register():
     #register classes
-    bpy.utils.register_class(BONEACTION_PT_Panel)
-    bpy.utils.register_class(BONEACTION_OT_RenameBone)
-    bpy.utils.register_class(BONEACTION_UL_List)
-    bpy.utils.register_class(BONEACTION_ListItem)
-    bpy.utils.register_class(BONEACTION_OT_New_NLAAction)
-    bpy.utils.register_class(BONEACTION_OT_Add_NLAAction)
-    bpy.utils.register_class(BONEACTION_OT_Remove_NLAAction)
-    bpy.utils.register_class(BONEACTION_MT_Existing_Menu)
+    bpy.utils.register_class(OBJECTACTIONUI_PT_Panel)
+    bpy.utils.register_class(OBJECTACTIONUI_OT_RenameBone)
+    bpy.utils.register_class(OBJECTACTIONUI_UL_List)
+    bpy.utils.register_class(OBJECTACTIONUI_ListItem)
+    bpy.utils.register_class(OBJECTACTIONUI_OT_New_NLAAction)
+    bpy.utils.register_class(OBJECTACTIONUI_OT_Add_NLAAction)
+    bpy.utils.register_class(OBJECTACTIONUI_OT_Remove_NLAAction)
+    bpy.utils.register_class(OBJECTACTIONUI_MT_Existing_Menu)
     #register props
-    bpy.types.Scene.nla_actions_list = bpy.props.CollectionProperty(type = BONEACTION_ListItem) 
+    bpy.types.Scene.nla_actions_list = bpy.props.CollectionProperty(type = OBJECTACTIONUI_ListItem) 
     bpy.types.Scene.nla_actions_index = bpy.props.IntProperty(name = "Index for nla_actions_list", default = 0)
     #bpy.types.Scene.bpy_action_index = bpy.props.IntProperty(name = "Index for bpy_actions_list", default = 0)
     #bpy.types.Scene.nla_last_object = bpy.props.StringProperty(name = "last object", default='')
     
 def unregister():
-    bpy.utils.unregister_class(BONEACTION_PT_Panel)
-    bpy.utils.unregister_class(BONEACTION_OT_RenameBone)
-    bpy.utils.unregister_class(BONEACTION_UL_List)
-    bpy.utils.unregister_class(BONEACTION_ListItem)
-    bpy.utils.unregister_class(BONEACTION_OT_New_NLAAction)
-    bpy.utils.unregister_class(BONEACTION_OT_Add_NLAAction)
-    bpy.utils.unregister_class(BONEACTION_OT_Remove_NLAAction)
-    bpy.utils.unregister_class(BONEACTION_MT_Existing_Menu)
+    bpy.utils.unregister_class(OBJECTACTIONUI_PT_Panel)
+    bpy.utils.unregister_class(OBJECTACTIONUI_OT_RenameBone)
+    bpy.utils.unregister_class(OBJECTACTIONUI_UL_List)
+    bpy.utils.unregister_class(OBJECTACTIONUI_ListItem)
+    bpy.utils.unregister_class(OBJECTACTIONUI_OT_New_NLAAction)
+    bpy.utils.unregister_class(OBJECTACTIONUI_OT_Add_NLAAction)
+    bpy.utils.unregister_class(OBJECTACTIONUI_OT_Remove_NLAAction)
+    bpy.utils.unregister_class(OBJECTACTIONUI_MT_Existing_Menu)
     del bpy.types.Scene.nla_actions_list
     del bpy.types.Scene.nla_actions_index
     #del bpy.types.Scene.bpy_action_index
