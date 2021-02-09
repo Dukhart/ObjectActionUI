@@ -1,9 +1,9 @@
-#BoneAction
+#ObjectActionUI
 
 <p>License</p>
 <p>GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007</p>
 <p>
-BoneAction Is a Blender plugin that adds a convenient UI panel to an armatures properties that can:
+ObjectActionUI Is a Blender plugin that adds a convenient UI panel to an armatures properties that can:
  </p>
 <ul>
 <li>Display an armature's actions.</li>
